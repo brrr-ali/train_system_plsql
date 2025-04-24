@@ -1,3 +1,15 @@
+(SELECT (planned_arrival_time)::DATE           as date_,
+        count(distinct public.tickets.ride_id) as count_rides,
+        count(tickets.id)                      as count_passangers
+ from tickets
+          JOIN ride_info ri on tickets.ride_id = ri.ride_id
+          JOIN timetable on ri.ride_id = timetable.ride_id AND
+                            start_station_order = timetable.station_order
+ WHERE (planned_arrival_time)::DATE between '14.10.2022' and current_date
+ group by (planned_arrival_time)::DATE
+ ORDER BY (planned_arrival_time)::DATE);
+
+
 DO
 $$
     DECLARE
@@ -28,6 +40,12 @@ $$
                         RPAD('Q' || current_quarter::TEXT, 10),
                         LPAD(sum_passengers::TEXT, 10),
                         LPAD(sum_rides::TEXT, 15), LPAD(sum_distances::TEXT, 15);
+                    year_rides := year_rides + sum_rides;
+                    year_passengers := year_passengers + sum_passengers;
+                    year_distances := year_distances + sum_distances;
+                    sum_rides := 0;
+                    sum_passengers := 0;
+                    sum_distances := 0;
                     if (current_year_ != extract(year from current_date_in)) then
                         RAISE NOTICE '% | % | % | %',
                             RPAD('Y' || current_year_::TEXT, 10),
@@ -38,12 +56,6 @@ $$
                         year_distances := 0;
                         current_year_ := extract(year from current_date_in);
                     end if;
-                    year_rides := year_rides + sum_rides;
-                    year_passengers := year_passengers + sum_passengers;
-                    year_distances := year_distances + sum_distances;
-                    sum_rides := 0;
-                    sum_passengers := 0;
-                    sum_distances := 0;
                     current_quarter := EXTRACT(QUARTER from current_date_in);
                 end if;
                 SELECT count(distinct public.tickets.ride_id)               as count_rides,
